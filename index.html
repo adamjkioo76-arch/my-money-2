@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <title>MY MONEY 4.0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+<!-- ================= LOADING ================= -->
+<div id="loading-screen" class="loading-screen">
+  <div class="spinner"></div>
+</div>
+
+<!-- ================= AUTH ================= -->
+<div id="auth-view" class="auth-view hidden">
+  <div class="auth-card">
+    <div class="logo">💎 MY MONEY <span>4.0</span></div>
+    <h1 class="auth-title" id="auth-title">تسجيل الدخول</h1>
+    <p class="auth-sub" id="auth-sub">مرحباً بك مجدداً 👋</p>
+
+    <form id="auth-form">
+      <div class="form-group" id="name-field" style="display:none">
+        <label>الاسم الكامل</label>
+        <input type="text" id="auth-name" placeholder="أحمد محمد" />
+      </div>
+      <div class="form-group">
+        <label>البريد الإلكتروني</label>
+        <input type="email" id="auth-email" placeholder="you@example.com" required />
+      </div>
+      <div class="form-group">
+        <label>كلمة المرور</label>
+        <div class="password-wrap">
+          <input type="password" id="auth-password" placeholder="••••••••" required minlength="6" />
+          <button type="button" class="toggle-pass" onclick="togglePassword()">👁</button>
+        </div>
+      </div>
+      <div class="auth-row">
+        <label class="checkbox"><input type="checkbox" id="remember-me"> تذكرني</label>
+        <a href="#" class="link" onclick="showForgotPassword(event)">نسيت كلمة المرور؟</a>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full" id="auth-submit">تسجيل الدخول</button>
+    </form>
+
+    <div class="divider"><span>أو</span></div>
+
+    <button class="btn btn-oauth" onclick="oauthLogin('google')">
+      <span style="font-weight:700">G</span> المتابعة بجوجل
+    </button>
+    <button class="btn btn-oauth" onclick="oauthLogin('facebook')">
+      <span style="font-weight:700;color:#1877F2">f</span> المتابعة بفيسبوك
+    </button>
+
+    <p class="auth-switch">
+      <span id="auth-switch-text">ليس لديك حساب؟</span>
+      <a href="#" class="link" onclick="toggleAuthMode(event)" id="auth-switch-link">إنشاء حساب جديد</a>
+    </p>
+  </div>
+</div>
+
+<!-- ================= ONBOARDING ================= -->
+<div id="onboarding-view" class="onboarding-view hidden">
+  <div class="onboarding-card">
+    <div class="onboarding-progress">
+      <span class="dot active" data-step="1"></span>
+      <span class="dot" data-step="2"></span>
+      <span class="dot" data-step="3"></span>
+    </div>
+    <div id="onboarding-step-1" class="onboarding-step">
+      <div class="onboarding-emoji">👋</div>
+      <h1>أهلاً بك في MY MONEY</h1>
+      <p>لنبدأ بإعداد حسابك في خطوات بسيطة</p>
+      <button class="btn btn-primary btn-full" onclick="onboardingNext(2)">يلا نبدأ</button>
+    </div>
+    <div id="onboarding-step-2" class="onboarding-step hidden">
+      <h2>اختر عملتك</h2>
+      <p class="muted">يمكنك تغييرها لاحقاً من الإعدادات</p>
+      <select id="onboarding-currency" class="input">
+        <option value="EGP" selected>جنيه مصري (EGP)</option>
+        <option value="USD">دولار أمريكي (USD)</option>
+        <option value="EUR">يورو (EUR)</option>
+        <option value="SAR">ريال سعودي (SAR)</option>
+        <option value="AED">درهم إماراتي (AED)</option>
+        <option value="KWD">دينار كويتي (KWD)</option>
+      </select>
+      <button class="btn btn-primary btn-full" onclick="onboardingNext(3)">متابعة</button>
+    </div>
+    <div id="onboarding-step-3" class="onboarding-step hidden">
+      <h2>كم راتبك الشهري؟</h2>
+      <p class="muted">أدخله يدوياً — لن نفرض أي رقم عليك</p>
+      <div class="salary-input-wrap">
+        <input type="number" id="onboarding-salary" class="salary-input" placeholder="0" min="0" step="100" />
+        <span class="salary-currency" id="onboarding-salary-currency">EGP</span>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="finishOnboarding()">حفظ ومتابعة</button>
+      <button class="btn btn-ghost btn-full" onclick="finishOnboarding(true)">تخطي الآن</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MAIN APP ================= -->
+<div id="app-view" class="app-view hidden">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">💎 MY MONEY <span>4.0</span></div>
+    <nav class="sidebar-nav">
+      <a href="#" data-page="dashboard" class="nav-item active"><i data-lucide="home"></i><span>الرئيسية</span></a>
+      <a href="#" data-page="income" class="nav-item"><i data-lucide="wallet"></i><span>الدخل والراتب</span></a>
+      <a href="#" data-page="transactions" class="nav-item"><i data-lucide="arrow-left-right"></i><span>المعاملات</span></a>
+      <a href="#" data-page="budgets" class="nav-item"><i data-lucide="piggy-bank"></i><span>الميزانيات</span></a>
+      <a href="#" data-page="savings" class="nav-item"><i data-lucide="target"></i><span>المدخرات</span></a>
+      <a href="#" data-page="debts" class="nav-item"><i data-lucide="hand-coins"></i><span>الديون</span></a>
+      <a href="#" data-page="bills" class="nav-item"><i data-lucide="calendar-clock"></i><span>الفواتير المتكررة</span></a>
+      <a href="#" data-page="reports" class="nav-item"><i data-lucide="bar-chart-3"></i><span>التقارير</span></a>
+      <a href="#" data-page="settings" class="nav-item"><i data-lucide="settings"></i><span>الإعدادات</span></a>
+    </nav>
+    <button class="btn btn-ghost sidebar-logout" onclick="signOut()">
+      <i data-lucide="log-out"></i> تسجيل الخروج
+    </button>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <header class="topbar">
+      <button class="icon-btn mobile-only" onclick="toggleSidebar()"><i data-lucide="menu"></i></button>
+      <div class="topbar-greeting">
+        <h2 id="greeting">مرحباً 👋</h2>
+        <span id="current-date" class="muted"></span>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn" onclick="toggleTheme()" title="الوضع الليلي"><i data-lucide="moon"></i></button>
+        <button class="icon-btn" onclick="toggleHideBalances()" title="إخفاء الأرصدة"><i data-lucide="eye"></i></button>
+        <button class="icon-btn" onclick="navigate('settings')"><i data-lucide="user-circle"></i></button>
+      </div>
+    </header>
+
+    <div id="page-content" class="page-content"></div>
+  </main>
+
+  <!-- BOTTOM NAV (mobile) -->
+  <nav class="bottom-nav">
+    <a href="#" data-page="dashboard" class="bottom-nav-item active"><i data-lucide="home"></i><span>الرئيسية</span></a>
+    <a href="#" data-page="transactions" class="bottom-nav-item"><i data-lucide="arrow-left-right"></i><span>معاملات</span></a>
+    <a href="#" data-page="add" class="bottom-nav-item add-btn"><i data-lucide="plus"></i></a>
+    <a href="#" data-page="budgets" class="bottom-nav-item"><i data-lucide="piggy-bank"></i><span>ميزانية</span></a>
+    <a href="#" data-page="settings" class="bottom-nav-item"><i data-lucide="settings"></i><span>إعدادات</span></a>
+  </nav>
+</div>
+
+<!-- ================= MODAL CONTAINER ================= -->
+<div id="modal-root"></div>
+
+<!-- ================= TOAST ================= -->
+<div id="toast-root" class="toast-root"></div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
